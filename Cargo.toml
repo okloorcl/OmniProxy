@@ -27,7 +27,7 @@ tokio-rustls = "0.26"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 uuid = { version = "1.18", features = ["v4", "serde"] }
-wasmtime = { version = "38", default-features = false, features = ["cranelift", "runtime"] }
+wasmtime = { version = "43", default-features = false, features = ["cranelift", "runtime"] }
 native-tls = "0.2"
 
 [profile.release]
