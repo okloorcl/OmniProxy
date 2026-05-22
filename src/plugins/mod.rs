@@ -262,7 +262,7 @@ impl WasmPluginHost {
     fn invoke_hook(&self, plugin: &WasmPlugin, hook: &str, payload: &[u8]) -> Result<()> {
         let mut store = Store::new(&self.engine, ());
         let instance = Instance::new(&mut store, &plugin.module, &[])
-            .with_context(|| format!("instantiate {}", plugin.name))?;
+            .map_err(|err| anyhow::anyhow!("instantiate {}: {}", plugin.name, err))?;
 
         let Some(hook_fn) = get_hook::<(i32, i32), i32>(&mut store, &instance, hook)? else {
             debug!(plugin = %plugin.name, hook, "hook not found, skip");
@@ -303,7 +303,7 @@ impl WasmPluginHost {
     ) -> Result<Option<Vec<u8>>> {
         let mut store = Store::new(&self.engine, ());
         let instance = Instance::new(&mut store, &plugin.module, &[])
-            .with_context(|| format!("instantiate {}", plugin.name))?;
+            .map_err(|err| anyhow::anyhow!("instantiate {}: {}", plugin.name, err))?;
 
         let Some(hook_fn) = get_hook::<(i32, i32), i64>(&mut store, &instance, hook)? else {
             return Ok(None);

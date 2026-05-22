@@ -42,13 +42,11 @@ pub async fn run_flow_logger(
                 file.write_all(b"\n").await?;
                 current_size = current_size.saturating_add(line.len() as u64 + 1);
 
-                if opts.rotate_bytes > 0 {
-                    if current_size >= opts.rotate_bytes {
-                        file.flush().await?;
-                        rotate_logs(path, opts.max_files).await?;
-                        file = open_append(path).await?;
-                        current_size = file.metadata().await.map(|m| m.len()).unwrap_or(0);
-                    }
+                if opts.rotate_bytes > 0 && current_size >= opts.rotate_bytes {
+                    file.flush().await?;
+                    rotate_logs(path, opts.max_files).await?;
+                    file = open_append(path).await?;
+                    current_size = file.metadata().await.map(|m| m.len()).unwrap_or(0);
                 }
             }
             Err(broadcast::error::RecvError::Lagged(skipped)) => {

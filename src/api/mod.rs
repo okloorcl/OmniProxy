@@ -95,7 +95,6 @@ pub async fn serve_ws_api(listen: std::net::SocketAddr, hub: ApiHub, max_lag: u6
     loop {
         let (stream, peer) = listener.accept().await?;
         let hub = hub.clone();
-        let max_lag = max_lag;
         tokio::spawn(async move {
             if let Err(err) = handle_connection(stream, peer.to_string(), hub, max_lag).await {
                 debug!(peer = %peer, error = %err, "ws client closed");

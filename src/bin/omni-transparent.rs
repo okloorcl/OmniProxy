@@ -74,10 +74,10 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    if matches!(platform, Platform::Macos) {
-        if let Some(parent) = cli.pf_anchor_file.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
+    if matches!(platform, Platform::Macos)
+        && let Some(parent) = cli.pf_anchor_file.parent()
+    {
+        std::fs::create_dir_all(parent)?;
     }
 
     for step in &actions {

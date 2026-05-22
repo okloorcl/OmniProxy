@@ -3,6 +3,8 @@
 English README: [README.md](./README.md)
 Full Manual (EN): [FULL_MANUAL.md](./FULL_MANUAL.md)
 完整手册（中文）: [FULL_MANUAL.zh-CN.md](./FULL_MANUAL.zh-CN.md)
+安全说明: [SECURITY.md](./SECURITY.md)
+更新日志: [CHANGELOG.md](./CHANGELOG.md)
 Usage Cookbook (EN): [docs/USAGE_COOKBOOK.md](./docs/USAGE_COOKBOOK.md)
 使用手册（中文实战）: [docs/USAGE_COOKBOOK.zh-CN.md](./docs/USAGE_COOKBOOK.zh-CN.md)
 Master Plan (EN): [docs/MASTER_PLAN.md](./docs/MASTER_PLAN.md)

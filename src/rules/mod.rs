@@ -193,6 +193,9 @@ fn parse_rule_line(line: &str) -> Result<RuleAction> {
             .split_once(" if ")
             .ok_or_else(|| anyhow::anyhow!("res.set_status requires ' if <expr>'"))?;
         let status: u16 = raw_status.trim().parse()?;
+        if !(100..=599).contains(&status) {
+            bail!("response status must be in 100..=599");
+        }
         return Ok(RuleAction::SetResStatus {
             status,
             when: parse(when.trim())?,
@@ -323,5 +326,19 @@ res.set_status abc if req.method == GET
         let _ = fs::remove_file(&path);
         let msg = err.to_string();
         assert!(msg.contains("line 2"), "unexpected error: {msg}");
+    }
+
+    #[test]
+    fn invalid_status_range_returns_line_number() {
+        let path = write_rule_file(
+            r#"
+res.set_status 999 if req.method == GET
+"#,
+        );
+        let err = RuleEngine::load(&path).expect_err("should fail");
+        let _ = fs::remove_file(&path);
+        let msg = err.to_string();
+        assert!(msg.contains("line 2"), "unexpected error: {msg}");
+        assert!(msg.contains("100..=599"), "unexpected status error: {msg}");
     }
 }

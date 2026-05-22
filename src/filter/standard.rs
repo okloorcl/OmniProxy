@@ -19,6 +19,9 @@ use std::{
 use tracing::{info, warn};
 use uuid::Uuid;
 
+const MAX_INFLIGHT_PER_CLIENT: usize = 1024;
+const MAX_INFLIGHT_BY_ID: usize = 16_384;
+
 #[derive(Clone, Default)]
 pub struct RequestIdFilter;
 
@@ -67,9 +70,11 @@ impl AccessLogFilter {
 
     fn push_req_id(&self, client: &str, req_id: &str) {
         if let Ok(mut m) = self.inflight_req_ids.lock() {
-            m.entry(client.to_string())
-                .or_insert_with(VecDeque::new)
-                .push_back(req_id.to_string());
+            let q = m.entry(client.to_string()).or_insert_with(VecDeque::new);
+            q.push_back(req_id.to_string());
+            while q.len() > MAX_INFLIGHT_PER_CLIENT {
+                q.pop_front();
+            }
         }
     }
 
@@ -255,10 +260,10 @@ impl HttpFilter for WasmFilter {
                 res.headers_mut().insert(name, value);
             }
         }
-        if let Some(code) = set_status {
-            if let Ok(status) = StatusCode::from_u16(code) {
-                *res.status_mut() = status;
-            }
+        if let Some(code) = set_status
+            && let Ok(status) = StatusCode::from_u16(code)
+        {
+            *res.status_mut() = status;
         }
         if let Some(body) = replace_body {
             *res.body_mut() = Body::from(body);
@@ -285,9 +290,11 @@ impl RuleFilter {
 
     fn push_meta(&self, client: &str, meta: RequestMeta) {
         if let Ok(mut m) = self.inflight_req_meta.lock() {
-            m.entry(client.to_string())
-                .or_insert_with(VecDeque::new)
-                .push_back(meta);
+            let q = m.entry(client.to_string()).or_insert_with(VecDeque::new);
+            q.push_back(meta);
+            while q.len() > MAX_INFLIGHT_PER_CLIENT {
+                q.pop_front();
+            }
         }
     }
 
@@ -303,6 +310,11 @@ impl RuleFilter {
 
     fn put_meta_by_req_id(&self, req_id: &str, meta: RequestMeta) {
         if let Ok(mut m) = self.inflight_req_meta_by_id.lock() {
+            if m.len() >= MAX_INFLIGHT_BY_ID
+                && let Some(evicted) = m.keys().next().cloned()
+            {
+                m.remove(&evicted);
+            }
             m.insert(req_id.to_string(), meta);
         }
     }
@@ -379,10 +391,10 @@ impl HttpFilter for RuleFilter {
                 res.headers_mut().insert(name, value);
             }
         }
-        if let Some(code) = outcome.override_status {
-            if let Ok(status) = StatusCode::from_u16(code) {
-                *res.status_mut() = status;
-            }
+        if let Some(code) = outcome.override_status
+            && let Ok(status) = StatusCode::from_u16(code)
+        {
+            *res.status_mut() = status;
         }
         if let Some(body) = outcome.replace_body {
             *res.body_mut() = Body::from(body);

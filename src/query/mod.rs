@@ -33,6 +33,7 @@ pub enum Op {
 pub enum Value {
     Str(String),
     Int(i64),
+    Regex(Regex),
 }
 
 #[derive(Debug, Clone, Default)]
@@ -68,10 +69,10 @@ impl Expr {
                     .as_ref()
                     .map(|u| u.ends_with(s))
                     .unwrap_or(false),
-                (Field::ReqUri, Op::Matches, Value::Str(s)) => ctx
+                (Field::ReqUri, Op::Matches, Value::Regex(re)) => ctx
                     .req_uri
                     .as_ref()
-                    .map(|u| Regex::new(s).map(|re| re.is_match(u)).unwrap_or(false))
+                    .map(|u| re.is_match(u))
                     .unwrap_or(false),
                 (Field::ReqHost, Op::Eq, Value::Str(s)) => {
                     ctx.req_host.as_ref().map(|h| h == s).unwrap_or(false)
@@ -91,10 +92,15 @@ impl Expr {
                     .as_ref()
                     .map(|h| h.ends_with(s))
                     .unwrap_or(false),
-                (Field::ReqHost, Op::Matches, Value::Str(s)) => ctx
+                (Field::ReqHost, Op::Matches, Value::Regex(re)) => ctx
                     .req_host
                     .as_ref()
-                    .map(|h| Regex::new(s).map(|re| re.is_match(h)).unwrap_or(false))
+                    .map(|h| re.is_match(h))
+                    .unwrap_or(false),
+                (Field::ReqMethod, Op::Contains, Value::Str(s)) => ctx
+                    .req_method
+                    .as_ref()
+                    .map(|m| m.contains(s))
                     .unwrap_or(false),
                 (Field::ReqMethod, Op::StartsWith, Value::Str(s)) => ctx
                     .req_method
@@ -106,10 +112,10 @@ impl Expr {
                     .as_ref()
                     .map(|m| m.ends_with(s))
                     .unwrap_or(false),
-                (Field::ReqMethod, Op::Matches, Value::Str(s)) => ctx
+                (Field::ReqMethod, Op::Matches, Value::Regex(re)) => ctx
                     .req_method
                     .as_ref()
-                    .map(|m| Regex::new(s).map(|re| re.is_match(m)).unwrap_or(false))
+                    .map(|m| re.is_match(m))
                     .unwrap_or(false),
                 (Field::ResStatus, Op::Eq, Value::Int(i)) => {
                     ctx.res_status.map(|x| x as i64 == *i).unwrap_or(false)
@@ -171,14 +177,18 @@ fn parse_cmp(input: &str) -> Result<Expr> {
 
     let raw = parts.1.trim();
     let value = match field {
-        Field::ReqMethod | Field::ReqUri | Field::ReqHost => {
-            let v = raw.trim_matches('"').to_string();
-            Value::Str(v)
+        Field::ReqMethod | Field::ReqUri | Field::ReqHost if matches!(op, Op::Matches) => {
+            Value::Regex(Regex::new(&parse_string_value(raw)?)?)
         }
+        Field::ReqMethod | Field::ReqUri | Field::ReqHost => Value::Str(parse_string_value(raw)?),
         Field::ResStatus => Value::Int(raw.parse()?),
     };
 
     Ok(Expr::Cmp(field, op, value))
+}
+
+fn parse_string_value(raw: &str) -> Result<String> {
+    Ok(raw.trim_matches('"').to_string())
 }
 
 fn split_top_level<'a>(input: &'a str, sep: &str) -> Option<(&'a str, &'a str)> {
@@ -243,6 +253,22 @@ mod tests {
         let expr = parse(r#"req.uri matches "^/api/v[0-9]+/items$""#).expect("parse");
         let ctx = EvalContext {
             req_uri: Some("/api/v2/items".into()),
+            ..EvalContext::default()
+        };
+        assert!(expr.eval(&ctx));
+    }
+
+    #[test]
+    fn invalid_regex_fails_at_parse_time() {
+        let err = parse(r#"req.uri matches "[""#).expect_err("invalid regex should fail");
+        assert!(err.to_string().contains("regex parse error"));
+    }
+
+    #[test]
+    fn method_contains_is_supported() {
+        let expr = parse(r#"req.method ~= "POS""#).expect("parse");
+        let ctx = EvalContext {
+            req_method: Some("POST".into()),
             ..EvalContext::default()
         };
         assert!(expr.eval(&ctx));

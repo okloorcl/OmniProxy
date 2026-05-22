@@ -32,10 +32,10 @@ pub struct ResponseSnapshot {
 
 pub fn expand_home(path: PathBuf) -> PathBuf {
     let s = path.to_string_lossy();
-    if let Some(stripped) = s.strip_prefix("~/") {
-        if let Ok(home) = std::env::var("HOME") {
-            return PathBuf::from(home).join(stripped);
-        }
+    if let Some(stripped) = s.strip_prefix("~/")
+        && let Ok(home) = std::env::var("HOME")
+    {
+        return PathBuf::from(home).join(stripped);
     }
     path
 }
@@ -108,20 +108,20 @@ pub fn load_requests(path: &PathBuf) -> Result<Vec<ReplayCandidate>> {
                             .get_mut(&client)
                             .and_then(|q| q.pop_front())
                     });
-                if let Some(idx) = target {
-                    if let Some(req) = out.get_mut(idx) {
-                        let normalized_headers = normalize_headers(headers);
-                        let body_hash = body_b64
-                            .as_deref()
-                            .and_then(|v| base64::engine::general_purpose::STANDARD.decode(v).ok())
-                            .map(|v| hash_bytes(&v));
-                        req.captured_response = Some(ResponseSnapshot {
-                            status,
-                            body_size,
-                            headers_hash: hash_headers(&normalized_headers),
-                            body_hash,
-                        });
-                    }
+                if let Some(idx) = target
+                    && let Some(req) = out.get_mut(idx)
+                {
+                    let normalized_headers = normalize_headers(headers);
+                    let body_hash = body_b64
+                        .as_deref()
+                        .and_then(|v| base64::engine::general_purpose::STANDARD.decode(v).ok())
+                        .map(|v| hash_bytes(&v));
+                    req.captured_response = Some(ResponseSnapshot {
+                        status,
+                        body_size,
+                        headers_hash: hash_headers(&normalized_headers),
+                        body_hash,
+                    });
                 }
             }
             ApiEvent::WebSocketFrame { .. } => {}

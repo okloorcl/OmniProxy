@@ -156,10 +156,10 @@ fn normalize_sample_rate(v: f64) -> f64 {
 
 fn expand_home(path: PathBuf) -> PathBuf {
     let s = path.to_string_lossy();
-    if let Some(stripped) = s.strip_prefix("~/") {
-        if let Ok(home) = std::env::var("HOME") {
-            return PathBuf::from(home).join(stripped);
-        }
+    if let Some(stripped) = s.strip_prefix("~/")
+        && let Ok(home) = std::env::var("HOME")
+    {
+        return PathBuf::from(home).join(stripped);
     }
     path
 }

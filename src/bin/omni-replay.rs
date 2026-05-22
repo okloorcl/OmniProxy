@@ -194,7 +194,7 @@ async fn replay_one(cli: &Cli, candidate: &ReplayCandidate) -> Result<()> {
     if cli.print_curl || cli.dry_run {
         println!(
             "{}",
-            render_curl(&method.to_string(), &uri, &headers, body.as_deref())
+            render_curl(method.as_ref(), &uri, &headers, body.as_deref())
         );
     }
     if cli.dry_run {
@@ -234,7 +234,7 @@ async fn replay_one(cli: &Cli, candidate: &ReplayCandidate) -> Result<()> {
         println!(
             "captured response status: {} (diff={})",
             captured.status,
-            if captured.status as u16 == status.as_u16() {
+            if captured.status == status.as_u16() {
                 "no"
             } else {
                 "yes"

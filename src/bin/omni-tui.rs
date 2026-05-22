@@ -59,16 +59,11 @@ enum UiEvent {
     WsDisconnected(String),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 enum InputMode {
+    #[default]
     Normal,
     Filter,
-}
-
-impl Default for InputMode {
-    fn default() -> Self {
-        Self::Normal
-    }
 }
 
 #[tokio::main]

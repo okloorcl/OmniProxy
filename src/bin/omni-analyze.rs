@@ -240,10 +240,10 @@ fn top_k<K: Ord + Clone + std::hash::Hash + Eq>(
 
 fn expand_home(path: PathBuf) -> PathBuf {
     let s = path.to_string_lossy();
-    if let Some(stripped) = s.strip_prefix("~/") {
-        if let Ok(home) = std::env::var("HOME") {
-            return PathBuf::from(home).join(stripped);
-        }
+    if let Some(stripped) = s.strip_prefix("~/")
+        && let Ok(home) = std::env::var("HOME")
+    {
+        return PathBuf::from(home).join(stripped);
     }
     path
 }
